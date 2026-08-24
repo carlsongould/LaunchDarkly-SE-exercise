@@ -392,6 +392,358 @@ curl -X POST "$LD_TRIGGER_URL"
 7. Enable the feature.
 8. Invoke the remediation trigger from Terminal.
 9. Show LaunchDarkly turning the feature **OFF**.
+
+
+
+# Individual Targeting
+
+The application supports both **individual targeting** and **rule-based targeting** using the same LaunchDarkly feature flag.
+
+This allows the demonstration to show the difference between:
+
+* Targeting a specific customer
+* Targeting a group of customers based on attributes
+
+---
+
+## Configure Individual Targeting
+
+In LaunchDarkly, open the feature flag:
+
+```text
+customer-insights-enabled
+```
+
+Navigate to the **Targeting** section.
+
+Configure an individual target for:
+
+```text
+Customer:
+Jane Smith
+
+Context key:
+customer-123
+```
+
+Set the individual target's variation to:
+
+```text
+ON
+```
+
+The resulting configuration should conceptually look like:
+
+```text
+Individual Targeting
+
+customer-123
+Jane Smith
+     │
+     ▼
+    ON
+```
+
+The important value is the context key:
+
+```text
+customer-123
+```
+
+This corresponds to the context created by the application:
+
+```ts
+{
+  kind: "user",
+  key: "customer-123",
+  name: "Jane Smith",
+  plan: "standard",
+  country: "US",
+}
+```
+
+> The `key` uniquely identifies the customer context used for individual targeting.
+
+---
+
+## Configure Rule-Based Targeting
+
+After the individual target, add a targeting rule for enterprise customers.
+
+Configure:
+
+```text
+IF
+    plan is enterprise
+
+THEN
+    ON
+```
+
+The targeting configuration should conceptually be:
+
+```text
+┌─────────────────────────────────────┐
+│ Individual Target                   │
+│ customer-123 → ON                   │
+├─────────────────────────────────────┤
+│ Rule                                 │
+│ plan == enterprise → ON              │
+├─────────────────────────────────────┤
+│ Default                             │
+│ everyone else → OFF                  │
+└─────────────────────────────────────┘
+```
+
+This allows the application to demonstrate both targeting approaches.
+
+---
+
+## Demonstrating Individual Targeting
+
+The application supports selecting a customer through the URL.
+
+Start the application:
+
+```bash
+npm run dev
+```
+
+Then open:
+
+```text
+http://localhost:5173/?customer=customer-123
+```
+
+The application loads the context:
+
+```text
+Jane Smith
+customer-123
+plan = standard
+```
+
+Because `customer-123` is individually targeted, the result should be:
+
+```text
+Customer Insights → ON
+```
+
+### Important Demonstration Point
+
+Jane has:
+
+```text
+plan = standard
+```
+
+She does **not** match the enterprise targeting rule.
+
+She receives the feature because she is **individually targeted**.
+
+This makes the distinction between individual and rule-based targeting visible during the demonstration.
+
+---
+
+## Demonstrating Rule-Based Targeting
+
+Open:
+
+```text
+http://localhost:5173/?customer=customer-456
+```
+
+The application loads:
+
+```text
+John Doe
+customer-456
+plan = enterprise
+```
+
+Assuming `customer-456` is not individually targeted, the enterprise rule evaluates to:
+
+```text
+plan == enterprise
+        │
+        ▼
+       ON
+```
+
+The result should be:
+
+```text
+Customer Insights → ON
+```
+
+This demonstrates **rule-based targeting**.
+
+---
+
+## Demonstrating the Default OFF Variation
+
+Open:
+
+```text
+http://localhost:5173/?customer=customer-789
+```
+
+The application loads:
+
+```text
+Alex Johnson
+customer-789
+plan = standard
+```
+
+Alex is:
+
+* Not individually targeted
+* Not an enterprise customer
+
+Therefore, the default variation should apply:
+
+```text
+Customer Insights → OFF
+```
+
+---
+
+## Targeting Demonstration Matrix
+
+| Customer     | Context Key    | Plan         | Individual Target | Rule Match | Result  |
+| ------------ | -------------- | ------------ | ----------------- | ---------- | ------- |
+| Jane Smith   | `customer-123` | `standard`   | Yes               | No         | **ON**  |
+| John Doe     | `customer-456` | `enterprise` | No                | Yes        | **ON**  |
+| Alex Johnson | `customer-789` | `standard`   | No                | No         | **OFF** |
+
+This provides a clear demonstration of how LaunchDarkly can control feature exposure at both the **individual** and **rule-based** levels.
+
+---
+
+## Demonstrating Individual targeting
+
+For the interview, demonstrate the three customers in this order.
+
+### 1. Individual Targeting
+
+Open:
+
+```text
+http://localhost:5173/?customer=customer-123
+```
+
+Show:
+
+```text
+Jane Smith
+standard · customer-123
+
+✨ Customer Insights
+```
+
+Explain:
+
+> "Jane is receiving the feature because her specific customer context is individually targeted. She does not qualify for the enterprise rule."
+
+### 2. Rule-Based Targeting
+
+Open:
+
+```text
+http://localhost:5173/?customer=customer-456
+```
+
+Show:
+
+```text
+John Doe
+enterprise · customer-456
+
+✨ Customer Insights
+```
+
+Explain:
+
+> "John isn't individually targeted. He's receiving the feature because he matches the enterprise targeting rule."
+
+### 3. Default Behavior
+
+Open:
+
+```text
+http://localhost:5173/?customer=customer-789
+```
+
+Show:
+
+```text
+Alex Johnson
+standard · customer-789
+
+Customer Insights → OFF
+```
+
+Explain:
+
+> "Alex doesn't match the individual target or the enterprise rule, so he receives the default OFF variation."
+
+---
+
+## Real-Time Changes Still Apply
+
+Individual targeting does not change the application's real-time behavior.
+
+For example, while viewing:
+
+```text
+http://localhost:5173/?customer=customer-123
+```
+
+change the individual target in LaunchDarkly:
+
+```text
+customer-123
+ON → OFF
+```
+
+The browser should receive the flag change through the LaunchDarkly SDK and remove Customer Insights **without a browser refresh**.
+
+Change it back:
+
+```text
+customer-123
+OFF → ON
+```
+
+Customer Insights should reappear without refreshing the page.
+
+This demonstrates that LaunchDarkly controls both **who receives the feature** and **when the feature is released or rolled back**.
+
+---
+
+## Targeting Flow
+
+The complete targeting model is:
+
+```mermaid
+flowchart TD
+    CONTEXT[Customer Context] --> INDIVIDUAL{Individual Target?}
+
+    INDIVIDUAL -->|customer-123| ON1[ON]
+    INDIVIDUAL -->|No| RULE{plan == enterprise?}
+
+    RULE -->|Yes| ON2[ON]
+    RULE -->|No| OFF[OFF]
+
+    ON1 --> FEATURE[Customer Insights]
+    ON2 --> FEATURE
+```
+
+This demonstrates the core LaunchDarkly capability required by the exercise:
+
+**Deploy → Target → Release → Monitor → Remediate**
+
 10. Show the browser responding to the change.
 
 ---
