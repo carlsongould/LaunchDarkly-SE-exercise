@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ldClient } from "./launchdarkly";
+import { ldClient, customerContext } from "./launchdarkly";
 import { CustomerDashboard } from "./components/CustomerDashboard";
 import "./styles.css";
 
@@ -13,15 +13,26 @@ function App() {
     let mounted = true;
 
     const initializeFlag = async () => {
-      await ldClient.waitForInitialization();
+      try {
+        await ldClient.waitForInitialization();
 
-      const currentValue = ldClient.variation(
-        FLAG_KEY,
-        false
-      ) as boolean;
+        const currentValue = ldClient.variation(
+          FLAG_KEY,
+          false
+        ) as boolean;
 
-      if (mounted) {
-        setInsightsEnabled(currentValue);
+        if (mounted) {
+          setInsightsEnabled(currentValue);
+        }
+      } catch (error) {
+        console.error(
+          "Failed to initialize LaunchDarkly:",
+          error
+        );
+
+        if (mounted) {
+          setInsightsEnabled(false);
+        }
       }
     };
 
@@ -33,8 +44,10 @@ function App() {
         false
       ) as boolean;
 
-      setInsightsEnabled(newValue);
-      setLastChanged(new Date());
+      if (mounted) {
+        setInsightsEnabled(newValue);
+        setLastChanged(new Date());
+      }
     };
 
     ldClient.on(`change:${FLAG_KEY}`, handleFlagChange);
@@ -49,6 +62,7 @@ function App() {
     <CustomerDashboard
       insightsEnabled={insightsEnabled}
       lastChanged={lastChanged}
+      customer={customerContext}
     />
   );
 }

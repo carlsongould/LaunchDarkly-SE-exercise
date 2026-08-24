@@ -1,20 +1,23 @@
+import type { LDContext } from "launchdarkly-js-client-sdk";
 import { CustomerInsights } from "./CustomerInsights";
 import { ReleaseStatus } from "./ReleaseStatus";
 
 interface Props {
   insightsEnabled: boolean;
   lastChanged: Date | null;
+  customer: LDContext;
 }
 
 export function CustomerDashboard({
   insightsEnabled,
   lastChanged,
+  customer,
 }: Props) {
   return (
     <main className="app">
       <header className="page-header">
         <div>
-          <p className="eyebrow">Observabilit.AI COMPANY</p>
+          <p className="eyebrow">ABC COMPANY</p>
           <h1>Customer Dashboard</h1>
         </div>
 
@@ -28,8 +31,12 @@ export function CustomerDashboard({
         <div className="customer-header">
           <div>
             <p className="eyebrow">CUSTOMER</p>
-            <h2>Jane Smith</h2>
-            <p>Enterprise · Acme Tools</p>
+
+            <h2>{customer.name}</h2>
+
+            <p>
+              {customer.plan} · {customer.key}
+            </p>
           </div>
 
           <span className="healthy">● Healthy</span>
@@ -57,4 +64,3 @@ export function CustomerDashboard({
     </main>
   );
 }
-
