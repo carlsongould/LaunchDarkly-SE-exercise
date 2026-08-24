@@ -223,7 +223,10 @@ plan == enterprise
 Customers who do not meet the targeting rule should receive:
 
 ```text
-OFF
+plan != enterprise
+        │
+        ▼
+       OFF
 ```
 
 This demonstrates the distinction between **deployment and exposure**.
