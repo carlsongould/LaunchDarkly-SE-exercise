@@ -82,8 +82,8 @@ git --version
 git clone https://github.com/YOUR_USERNAME/launchdarkly-se-exercise.git
 cd launchdarkly-se-exercise
 ```
-*Move App.tsx launchdarkly.tsx and styles.css to the src folder. 
-*Move ReleaseStatus.tsx CustomerDashboard.tsx CustomerInsights.tsx to the src/components folder. 
+* Move App.tsx launchdarkly.tsx and styles.css to the src folder. 
+* Move ReleaseStatus.tsx CustomerDashboard.tsx CustomerInsights.tsx to the src/components folder. 
 
 ### 2. Install Dependencies
 
